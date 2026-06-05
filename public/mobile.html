@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Upload Invoice</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fff;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      color: #111;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 420px; text-align: center; }
+    .screen.active { display: flex; }
+
+    /* ── Typography ── */
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    p.sub { font-size: 0.9rem; color: #666; line-height: 1.5; margin-bottom: 32px; }
+
+    /* ── Camera icon ── */
+    .icon-wrap { width: 96px; height: 96px; background: #f0f4ff; border-radius: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+    .icon-wrap svg { width: 48px; height: 48px; color: #4361ee; }
+
+    /* ── File input styled as button ── */
+    .capture-label {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 18px 24px;
+      background: #4361ee; color: #fff;
+      font-size: 1.05rem; font-weight: 600;
+      border-radius: 16px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, transform 0.1s;
+      user-select: none;
+    }
+    .capture-label:active { background: #3451d1; transform: scale(0.98); }
+    .capture-label svg { width: 22px; height: 22px; flex-shrink: 0; }
+    #fileInput { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+
+    /* ── Preview screen ── */
+    #preview-img {
+      width: 100%; max-height: 52vh; object-fit: contain;
+      border-radius: 16px; border: 1px solid #e8e8e8;
+      margin-bottom: 8px; background: #f7f7f7;
+    }
+    .file-name { font-size: 0.8rem; color: #888; margin-bottom: 24px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .btn-row { display: flex; gap: 12px; width: 100%; }
+    .btn {
+      flex: 1; padding: 16px; font-size: 1rem; font-weight: 600;
+      border: none; border-radius: 14px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #4361ee; color: #fff; }
+    .btn-primary:active { background: #3451d1; }
+    .btn-ghost { background: #f0f0f0; color: #444; }
+    .btn-ghost:active { background: #e0e0e0; }
+    .btn-danger { background: #fee2e2; color: #b91c1c; }
+    .btn-danger:active { background: #fecaca; }
+
+    /* ── Progress ── */
+    .progress-wrap { width: 100%; margin: 32px 0; }
+    .progress-label { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
+    .progress-track { width: 100%; height: 8px; background: #eee; border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: #4361ee; border-radius: 999px; transition: width 0.2s ease; }
+    #progress-pct { font-size: 0.8rem; color: #888; margin-top: 6px; }
+
+    /* ── Success ── */
+    .check-wrap { width: 88px; height: 88px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+    .check-wrap svg { width: 44px; height: 44px; color: #16a34a; }
+
+    /* ── Error ── */
+    .error-wrap { width: 88px; height: 88px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+    .error-wrap svg { width: 44px; height: 44px; color: #dc2626; }
+    #error-msg { font-size: 0.9rem; color: #666; margin-bottom: 28px; line-height: 1.5; }
+
+    /* ── Missing session banner ── */
+    .banner { width: 100%; padding: 14px 18px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; color: #9a3412; font-size: 0.85rem; margin-top: 16px; }
+  </style>
+</head>
+<body>
+
+  <!-- Screen: Capture -->
+  <div class="screen active" id="screen-capture">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+    </div>
+    <h1>Scan Invoice</h1>
+    <p class="sub">Photograph or choose an invoice image.<br>We'll extract the data automatically.</p>
+
+    <input type="file" id="fileInput" accept="image/*" capture="environment" />
+    <label class="capture-label" for="fileInput">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Tap to photograph invoice
+    </label>
+
+    <div id="no-session-banner" class="banner" style="display:none">
+      No session ID found in URL. Upload will still work but results won't be linked to a desktop session.
+    </div>
+  </div>
+
+  <!-- Screen: Preview -->
+  <div class="screen" id="screen-preview">
+    <img id="preview-img" src="" alt="Invoice preview" />
+    <p class="file-name" id="file-name"></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="btn-retake">Retake</button>
+      <button class="btn btn-primary" id="btn-upload">Upload</button>
+    </div>
+  </div>
+
+  <!-- Screen: Uploading -->
+  <div class="screen" id="screen-uploading">
+    <h1>Uploading…</h1>
+    <div class="progress-wrap">
+      <p class="progress-label">Sending to extraction service</p>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <p id="progress-pct">0%</p>
+    </div>
+  </div>
+
+  <!-- Screen: Success -->
+  <div class="screen" id="screen-success">
+    <div class="check-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1>Invoice sent!</h1>
+    <p class="sub">The data was extracted successfully.<br>You can close this page.</p>
+  </div>
+
+  <!-- Screen: Error -->
+  <div class="screen" id="screen-error">
+    <div class="error-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h1>Upload failed</h1>
+    <p id="error-msg">Something went wrong.</p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="btn-reset">Start over</button>
+      <button class="btn btn-danger" id="btn-retry">Retry</button>
+    </div>
+  </div>
+
+  <script>
+    // ── Session ID from path /mobile/:sessionId ──────────────────────────────
+    const pathParts = location.pathname.split('/').filter(Boolean);
+    const sessionId = pathParts.length >= 2 && pathParts[pathParts.length - 2] === 'mobile'
+      ? pathParts[pathParts.length - 1]
+      : null;
+
+    if (!sessionId) {
+      document.getElementById('no-session-banner').style.display = 'block';
+    }
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let selectedFile = null;
+
+    const screens = {
+      capture:   document.getElementById('screen-capture'),
+      preview:   document.getElementById('screen-preview'),
+      uploading: document.getElementById('screen-uploading'),
+      success:   document.getElementById('screen-success'),
+      error:     document.getElementById('screen-error'),
+    };
+
+    function showScreen(name) {
+      for (const [key, el] of Object.entries(screens)) {
+        el.classList.toggle('active', key === name);
+      }
+    }
+
+    // ── File capture ─────────────────────────────────────────────────────────
+    const fileInput    = document.getElementById('fileInput');
+    const previewImg   = document.getElementById('preview-img');
+    const fileName     = document.getElementById('file-name');
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      selectedFile = file;
+
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      previewImg.onload = () => URL.revokeObjectURL(url);
+      fileName.textContent = file.name;
+      showScreen('preview');
+    });
+
+    // ── Preview actions ───────────────────────────────────────────────────────
+    document.getElementById('btn-retake').addEventListener('click', () => {
+      selectedFile = null;
+      fileInput.value = '';
+      showScreen('capture');
+    });
+
+    document.getElementById('btn-upload').addEventListener('click', startUpload);
+
+    // ── Error actions ─────────────────────────────────────────────────────────
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      selectedFile = null;
+      fileInput.value = '';
+      showScreen('capture');
+    });
+
+    document.getElementById('btn-retry').addEventListener('click', startUpload);
+
+    // ── Upload ────────────────────────────────────────────────────────────────
+    function startUpload() {
+      if (!selectedFile) { showScreen('capture'); return; }
+
+      const endpoint = sessionId
+        ? '/api/v1/extract/' + encodeURIComponent(sessionId)
+        : '/api/v1/extract/anonymous';
+
+      const form = new FormData();
+      form.append('file', selectedFile);
+
+      showScreen('uploading');
+      setProgress(0);
+
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          showScreen('success');
+        } else {
+          let msg = 'Server error (' + xhr.status + ').';
+          try {
+            const body = JSON.parse(xhr.responseText);
+            if (body.error && body.error.message) msg = body.error.message;
+            else if (typeof body.error === 'string') msg = body.error;
+          } catch (_) {}
+          showError(msg);
+        }
+      });
+
+      xhr.addEventListener('error',   () => showError('Network error — check your connection and try again.'));
+      xhr.addEventListener('timeout', () => showError('Request timed out. Please try again.'));
+
+      xhr.timeout = 120_000;
+      xhr.open('POST', endpoint);
+      xhr.send(form);
+    }
+
+    function setProgress(pct) {
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-pct').textContent = pct + '%';
+    }
+
+    function showError(msg) {
+      document.getElementById('error-msg').textContent = msg;
+      showScreen('error');
+    }
+  </script>
+</body>
+</html>

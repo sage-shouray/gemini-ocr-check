@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice Extractor — Dashboard</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue:        #4361ee;
+      --blue-50:     #eef0fd;
+      --blue-100:    #dde2fb;
+      --green:       #16a34a;
+      --green-50:    #dcfce7;
+      --amber:       #d97706;
+      --amber-50:    #fef3c7;
+      --red:         #dc2626;
+      --red-50:      #fee2e2;
+      --gray-50:     #f9fafb;
+      --gray-100:    #f3f4f6;
+      --gray-200:    #e5e7eb;
+      --gray-400:    #9ca3af;
+      --gray-500:    #6b7280;
+      --gray-700:    #374151;
+      --gray-900:    #111827;
+      --sidebar-w:   340px;
+      --radius:      12px;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1rem; color: var(--gray-900); }
+    .brand svg { color: var(--blue); }
+    .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-400); flex-shrink: 0; transition: background .3s; }
+    .ws-dot.connected { background: var(--green); }
+    .ws-label { font-size: .75rem; color: var(--gray-500); }
+    .ws-status { display: flex; align-items: center; gap: 6px; }
+
+    /* ── Layout ──────────────────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Left sidebar ────────────────────────────────────────────────────── */
+    aside {
+      background: #fff;
+      border-right: 1px solid var(--gray-200);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 20px;
+      overflow-y: auto;
+      gap: 20px;
+    }
+    .sidebar-title { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--gray-400); align-self: flex-start; }
+
+    /* QR area */
+    .qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+    .qr-box {
+      width: 220px; height: 220px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      background: var(--gray-50);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+    .qr-box.loading { border-style: dashed; }
+    .qr-placeholder { color: var(--gray-400); font-size: .85rem; text-align: center; padding: 16px; }
+
+    /* Status pill */
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: .8rem; font-weight: 500;
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+    .status-pill.waiting  { background: var(--blue-50);   color: var(--blue);   }
+    .status-pill.processing { background: var(--amber-50); color: var(--amber); }
+    .status-pill.done     { background: var(--green-50);  color: var(--green);  }
+    .status-pill.error    { background: var(--red-50);    color: var(--red);    }
+    .status-pill svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%; padding: 12px;
+      background: var(--blue); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: .9rem; font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    .btn-primary:hover { background: #3451d1; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+    /* ── Right panel ─────────────────────────────────────────────────────── */
+    main {
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Empty / error state */
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; color: var(--gray-400); text-align: center;
+    }
+    .empty-state svg { width: 56px; height: 56px; opacity: .5; }
+    .empty-state p { font-size: .95rem; }
+
+    /* Processing overlay */
+    #processing-view {
+      flex: 1; display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px; color: var(--gray-500);
+    }
+    .big-spinner {
+      width: 48px; height: 48px;
+      border: 4px solid var(--gray-200);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* ── Result cards ────────────────────────────────────────────────────── */
+    #results-view { display: none; flex-direction: column; gap: 20px; }
+
+    .result-header {
+      display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    .doc-type { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--gray-500); margin-bottom: 4px; }
+    .invoice-num { font-size: 1.5rem; font-weight: 700; color: var(--gray-900); line-height: 1.2; }
+    .confidence-badge {
+      padding: 4px 12px; border-radius: 999px;
+      font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      flex-shrink: 0;
+    }
+    .confidence-badge.high   { background: var(--green-50); color: var(--green); }
+    .confidence-badge.medium { background: var(--amber-50); color: var(--amber); }
+    .confidence-badge.low    { background: var(--red-50);   color: var(--red);   }
+
+    /* Card */
+    .card { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 18px 20px; }
+    .card-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--gray-500); margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
+    }
+    .card-title svg { width: 14px; height: 14px; }
+
+    /* Two-column cards row */
+    .cards-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .cards-row { grid-template-columns: 1fr; } }
+
+    /* Field list inside card */
+    .field-list { display: flex; flex-direction: column; gap: 8px; }
+    .kv { display: grid; grid-template-columns: 130px 1fr; gap: 4px; align-items: baseline; }
+    .kv dt { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--gray-400); }
+    .kv dd { font-size: .85rem; color: var(--gray-900); word-break: break-word; }
+
+    /* Address sub-block */
+    .address-text { font-size: .82rem; color: var(--gray-700); line-height: 1.5; white-space: pre-line; }
+
+    /* Bank details */
+    .sub-card { margin-top: 12px; padding: 10px 12px; background: var(--gray-50); border-radius: 8px; }
+    .sub-card-title { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-400); margin-bottom: 8px; }
+
+    /* Dates grid */
+    .dates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .date-chip { background: var(--gray-50); border-radius: 8px; padding: 10px 12px; }
+    .date-chip dt { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-400); margin-bottom: 3px; }
+    .date-chip dd { font-size: .9rem; font-weight: 600; color: var(--gray-900); }
+
+    /* Line items table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    thead th {
+      background: var(--gray-50); border-bottom: 2px solid var(--gray-200);
+      padding: 8px 10px; text-align: left;
+      font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-500);
+      white-space: nowrap;
+    }
+    tbody td { padding: 9px 10px; border-bottom: 1px solid var(--gray-100); vertical-align: top; color: var(--gray-700); }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--gray-50); }
+    td.num, th.num { text-align: right; }
+    td.desc { min-width: 180px; max-width: 280px; }
+
+    /* Totals card */
+    .totals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 640px) { .totals-grid { grid-template-columns: 1fr; } }
+    .total-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--gray-100); }
+    .total-row:last-child { border-bottom: none; }
+    .total-row.grand { border-top: 2px solid var(--gray-200); border-bottom: none; padding-top: 10px; margin-top: 4px; }
+    .total-row dt { font-size: .8rem; color: var(--gray-500); }
+    .total-row.grand dt { font-weight: 700; color: var(--gray-900); font-size: .95rem; }
+    .total-row dd { font-size: .85rem; font-weight: 600; color: var(--gray-900); }
+    .total-row.grand dd { font-size: 1.1rem; font-weight: 700; color: var(--blue); }
+    .amount-words { margin-top: 12px; padding: 8px 12px; background: var(--blue-50); border-radius: 8px; font-size: .8rem; color: var(--blue); font-style: italic; }
+
+    /* Warnings */
+    .warnings { display: flex; flex-direction: column; gap: 6px; }
+    .warning-item { display: flex; align-items: flex-start; gap: 8px; font-size: .8rem; color: var(--amber); }
+    .warning-item svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    /* Notes */
+    .notes-text { font-size: .85rem; color: var(--gray-700); line-height: 1.6; white-space: pre-line; }
+
+    /* Null dash */
+    .nil { color: var(--gray-400); }
+
+    /* ── Direct upload ────────────────────────────────────────────────────── */
+    .sidebar-divider { width: 100%; height: 1px; background: var(--gray-200); }
+
+    .upload-zone {
+      width: 100%;
+      border: 2px dashed var(--gray-200);
+      border-radius: 10px;
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: var(--blue); background: var(--blue-50); }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-zone-icon { color: var(--gray-400); margin-bottom: 6px; }
+    .upload-zone p { font-size: .78rem; color: var(--gray-500); line-height: 1.4; }
+    .upload-zone p strong { color: var(--gray-700); }
+
+    .selected-file {
+      width: 100%;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px;
+      font-size: .78rem; color: var(--gray-700);
+    }
+    .selected-file svg { flex-shrink: 0; color: var(--blue); }
+    .selected-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+    .btn-upload {
+      width: 100%; padding: 11px;
+      background: var(--green); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: .9rem; font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    .btn-upload:hover { background: #15803d; }
+    .btn-upload:active { transform: scale(.98); }
+    .btn-upload:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+    .upload-progress { width: 100%; }
+    .upload-progress-track { width: 100%; height: 6px; background: var(--gray-100); border-radius: 999px; overflow: hidden; margin-bottom: 4px; }
+    .upload-progress-fill { height: 100%; width: 0%; background: var(--green); border-radius: 999px; transition: width .2s; }
+    .upload-progress-label { font-size: .72rem; color: var(--gray-500); text-align: center; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+    </svg>
+    Invoice Extractor
+  </div>
+  <div class="ws-status">
+    <div class="ws-dot" id="ws-dot"></div>
+    <span class="ws-label" id="ws-label">Connecting…</span>
+  </div>
+</header>
+
+<!-- ── Layout ─────────────────────────────────────────────────────────────── -->
+<div class="layout">
+
+  <!-- Left sidebar -->
+  <aside>
+    <span class="sidebar-title">Mobile Scanner</span>
+
+    <div class="qr-wrap">
+      <div class="qr-box loading" id="qr-box">
+        <p class="qr-placeholder">Loading…</p>
+      </div>
+
+      <div class="status-pill" id="status-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Initialising…
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-scan-another" disabled>Scan Another</button>
+
+    <span class="sidebar-title" style="margin-top:4px">Session</span>
+    <code id="session-id-display" style="font-size:.7rem;color:var(--gray-500);word-break:break-all;text-align:center">—</code>
+
+    <hr class="sidebar-divider" />
+    <span class="sidebar-title">Upload Directly</span>
+
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="desktop-file-input" accept=".jpg,.jpeg,.png,.webp,.tiff,.heic,.heif,.pdf,image/*,application/pdf" />
+      <div class="upload-zone-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <p><strong>Click or drag</strong> an invoice<br>JPG &bull; PNG &bull; PDF &bull; HEIC &mdash; max 20 MB</p>
+    </div>
+
+    <div class="selected-file" id="selected-file-info" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span id="selected-file-name"></span>
+    </div>
+
+    <button class="btn-upload" id="btn-desktop-upload" disabled>Upload &amp; Extract</button>
+
+    <div class="upload-progress" id="upload-progress" style="display:none">
+      <div class="upload-progress-track">
+        <div class="upload-progress-fill" id="upload-progress-fill"></div>
+      </div>
+      <p class="upload-progress-label" id="upload-progress-label">Uploading…</p>
+    </div>
+  </aside>
+
+  <!-- Right panel -->
+  <main id="right-panel">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-view">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h4"/>
+      </svg>
+      <p>Scan the QR code with your phone,<br>or upload a file directly from the sidebar.</p>
+    </div>
+
+    <!-- Processing -->
+    <div id="processing-view">
+      <div class="big-spinner"></div>
+      <p style="font-size:.95rem;color:var(--gray-500)">Extracting invoice data…</p>
+      <p style="font-size:.8rem;color:var(--gray-400)">This usually takes 5–15 seconds</p>
+    </div>
+
+    <!-- Error view -->
+    <div class="empty-state" id="error-view" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <p id="error-msg" style="color:var(--red)">An error occurred.</p>
+    </div>
+
+    <!-- Results -->
+    <div id="results-view"></div>
+
+  </main>
+</div>
+
+<script>
+// ── Utilities ────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmt(n, currency) {
+  if (n == null) return '<span class="nil">—</span>';
+  const num = Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return currency ? `${esc(currency)} ${num}` : num;
+}
+
+function fmtVal(v) {
+  return v != null ? esc(String(v)) : '<span class="nil">—</span>';
+}
+
+function kv(label, value) {
+  if (value == null || value === '') return '';
+  return `<div class="kv"><dt>${esc(label)}</dt><dd>${fmtVal(value)}</dd></div>`;
+}
+
+function formatAddress(a) {
+  if (!a) return null;
+  const parts = [a.line1, a.line2, a.city, [a.state, a.postal_code].filter(Boolean).join(' '), a.country].filter(Boolean);
+  return parts.length ? parts.join('\n') : null;
+}
+
+// ── DOM refs ─────────────────────────────────────────────────────────────────
+
+const qrBox         = document.getElementById('qr-box');
+const statusPill    = document.getElementById('status-pill');
+const btnScanAnother= document.getElementById('btn-scan-another');
+const sessionDisplay= document.getElementById('session-id-display');
+const wsDot         = document.getElementById('ws-dot');
+const wsLabel       = document.getElementById('ws-label');
+
+const emptyView     = document.getElementById('empty-view');
+const processingView= document.getElementById('processing-view');
+const errorView     = document.getElementById('error-view');
+const errorMsg      = document.getElementById('error-msg');
+const resultsView   = document.getElementById('results-view');
+
+// ── State machine ─────────────────────────────────────────────────────────────
+
+function showView(name) {
+  emptyView.style.display      = name === 'empty'      ? 'flex' : 'none';
+  processingView.style.display = name === 'processing' ? 'flex' : 'none';
+  errorView.style.display      = name === 'error'      ? 'flex' : 'none';
+  resultsView.style.display    = name === 'results'    ? 'flex' : 'none';
+}
+
+function setStatus(state, text) {
+  const icons = {
+    waiting:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`,
+    processing: `<div class="spinner"></div>`,
+    done:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    error:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  };
+  statusPill.className = `status-pill ${state}`;
+  statusPill.innerHTML = `${icons[state] || ''} ${esc(text)}`;
+}
+
+// ── WebSocket ────────────────────────────────────────────────────────────────
+
+let ws = null;
+let currentSessionId = null;
+let reconnectTimer = null;
+
+function connectWs(sessionId) {
+  if (ws) { ws.onclose = null; ws.close(); }
+  clearTimeout(reconnectTimer);
+
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+  ws.onopen = () => {
+    wsDot.className = 'ws-dot connected';
+    wsLabel.textContent = 'Connected';
+    ws.send(JSON.stringify({ type: 'register', sessionId }));
+  };
+
+  ws.onmessage = (evt) => {
+    try { handleWsMessage(JSON.parse(evt.data)); } catch { /* ignore */ }
+  };
+
+  ws.onclose = () => {
+    wsDot.className = 'ws-dot';
+    wsLabel.textContent = 'Reconnecting…';
+    reconnectTimer = setTimeout(() => connectWs(currentSessionId), 3000);
+  };
+
+  ws.onerror = () => {
+    wsDot.className = 'ws-dot';
+    wsLabel.textContent = 'Error';
+  };
+}
+
+function handleWsMessage(msg) {
+  if (msg.type === 'registered') return;
+
+  if (msg.status === 'processing') {
+    setStatus('processing', 'Extracting…');
+    qrBox.innerHTML = '<div class="big-spinner" style="width:48px;height:48px;border-width:4px;border-color:var(--gray-200);border-top-color:var(--blue)"></div>';
+    showView('processing');
+    return;
+  }
+
+  if (msg.status === 'done' && msg.data) {
+    setStatus('done', 'Done');
+    btnScanAnother.disabled = false;
+    renderResults(msg.data);
+    showView('results');
+    return;
+  }
+
+  if (msg.status === 'error') {
+    setStatus('error', 'Error');
+    errorMsg.textContent = msg.error ?? 'Extraction failed.';
+    btnScanAnother.disabled = false;
+    showView('error');
+  }
+}
+
+// ── Session init ──────────────────────────────────────────────────────────────
+
+async function initSession() {
+  qrBox.className = 'qr-box loading';
+  qrBox.innerHTML = '<p class="qr-placeholder">Loading…</p>';
+  setStatus('waiting', 'Initialising…');
+  btnScanAnother.disabled = true;
+  showView('empty');
+  resultsView.innerHTML = '';
+  clearUploadState();
+
+  try {
+    const resp = await fetch('/api/v1/session', { method: 'POST' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    const { sessionId, qrCodeDataUrl } = json.data;
+
+    currentSessionId = sessionId;
+    sessionDisplay.textContent = sessionId;
+
+    qrBox.className = 'qr-box';
+    qrBox.innerHTML = `<img src="${esc(qrCodeDataUrl)}" alt="Scan this QR code with your phone" />`;
+    setStatus('waiting', 'Waiting for scan…');
+
+    connectWs(sessionId);
+  } catch (err) {
+    setStatus('error', 'Session failed');
+    qrBox.innerHTML = `<p class="qr-placeholder" style="color:var(--red)">Failed to create session.<br>Check server.</p>`;
+  }
+}
+
+btnScanAnother.addEventListener('click', initSession);
+
+// ── Result rendering ──────────────────────────────────────────────────────────
+
+function renderResults(d) {
+  const currency = d.totals?.currency;
+  const confidence = d._meta?.confidence ?? 'low';
+  const warnings   = d._meta?.warnings ?? [];
+
+  const html = [];
+
+  // Header
+  html.push(`
+    <div class="result-header">
+      <div>
+        <div class="doc-type">${esc(d.document_type ?? 'Invoice')}</div>
+        <div class="invoice-num">${d.invoice_number ? esc(d.invoice_number) : '<span class="nil">No Invoice #</span>'}</div>
+      </div>
+      <span class="confidence-badge ${esc(confidence)}">${esc(confidence)} confidence</span>
+    </div>
+  `);
+
+  // Dates & references card
+  const dateFields = [
+    { label: 'Invoice Date',    val: d.invoice_date },
+    { label: 'Due Date',        val: d.due_date },
+    { label: 'Delivery Date',   val: d.delivery_date },
+    { label: 'Payment Terms',   val: d.payment_terms },
+    { label: 'PO Number',       val: d.po_number },
+    { label: 'Order ID',        val: d.order_id },
+    { label: 'Reference #',     val: d.reference_number },
+  ].filter(f => f.val != null);
+
+  if (dateFields.length) {
+    html.push(`
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Dates &amp; References
+        </div>
+        <div class="dates-grid">
+          ${dateFields.map(f => `<dl class="date-chip"><dt>${esc(f.label)}</dt><dd>${esc(f.val)}</dd></dl>`).join('')}
+        </div>
+      </div>
+    `);
+  }
+
+  // Vendor + Buyer side-by-side
+  html.push(`<div class="cards-row">${renderPartyCard('Vendor', d.vendor, true)}${renderPartyCard('Bill To', d.buyer, false)}</div>`);
+
+  // Ship To (only if different from buyer)
+  if (d.ship_to?.name || formatAddress(d.ship_to?.address)) {
+    html.push(`
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Ship To
+        </div>
+        <div class="field-list">
+          ${kv('Name', d.ship_to.name)}
+          ${d.ship_to.address ? `<div class="kv"><dt>Address</dt><dd><span class="address-text">${esc(formatAddress(d.ship_to.address) ?? '—')}</span></dd></div>` : ''}
+        </div>
+      </div>
+    `);
+  }
+
+  // Line items
+  if (d.line_items?.length) {
+    html.push(renderLineItems(d.line_items, currency));
+  }
+
+  // Totals
+  if (d.totals) {
+    html.push(renderTotals(d.totals));
+  }
+
+  // Notes + T&C
+  if (d.notes || d.terms_and_conditions || d.authorized_signatory) {
+    html.push(`
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Notes &amp; Terms
+        </div>
+        <div class="field-list">
+          ${d.notes             ? `<div><p class="notes-text">${esc(d.notes)}</p></div>` : ''}
+          ${d.terms_and_conditions ? `${kv('Terms', d.terms_and_conditions)}` : ''}
+          ${d.authorized_signatory ? `${kv('Signatory', d.authorized_signatory)}` : ''}
+        </div>
+      </div>
+    `);
+  }
+
+  // Meta / warnings
+  if (warnings.length || d._meta?.page_count != null) {
+    html.push(`
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Extraction Meta
+        </div>
+        ${d._meta?.page_count != null ? `<p style="font-size:.8rem;color:var(--gray-500);margin-bottom:10px">Pages processed: <strong>${d._meta.page_count}</strong></p>` : ''}
+        ${warnings.length ? `
+          <div class="warnings">
+            ${warnings.map(w => `
+              <div class="warning-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                ${esc(w)}
+              </div>`).join('')}
+          </div>` : ''}
+      </div>
+    `);
+  }
+
+  resultsView.innerHTML = html.join('');
+}
+
+function renderPartyCard(title, party, showBank) {
+  if (!party) return '';
+  const addr = formatAddress(party.address);
+  const hasContent = party.name || addr || party.phone || party.email || party.gstin || party.pan || party.tax_id;
+  if (!hasContent) return '';
+
+  const bankHtml = showBank && party.bank_details ? (() => {
+    const b = party.bank_details;
+    const has = b.bank_name || b.account_number || b.ifsc_code || b.swift_code;
+    if (!has) return '';
+    return `
+      <div class="sub-card">
+        <div class="sub-card-title">Bank Details</div>
+        <div class="field-list">
+          ${kv('Bank', b.bank_name)}
+          ${kv('Account', b.account_number)}
+          ${kv('IFSC', b.ifsc_code)}
+          ${kv('SWIFT', b.swift_code)}
+        </div>
+      </div>`;
+  })() : '';
+
+  const icon = title === 'Vendor'
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
+  return `
+    <div class="card">
+      <div class="card-title">${icon} ${esc(title)}</div>
+      <div class="field-list">
+        ${party.name ? `<div class="kv"><dt>Name</dt><dd><strong>${esc(party.name)}</strong></dd></div>` : ''}
+        ${addr       ? `<div class="kv"><dt>Address</dt><dd><span class="address-text">${esc(addr)}</span></dd></div>` : ''}
+        ${kv('Phone',  party.phone)}
+        ${kv('Email',  party.email)}
+        ${kv('GSTIN',  party.gstin)}
+        ${kv('PAN',    party.pan)}
+        ${kv('Tax ID', party.tax_id)}
+      </div>
+      ${bankHtml}
+    </div>`;
+}
+
+function renderLineItems(items, currency) {
+  // Only show columns that have at least one non-null value
+  const ALL_COLS = [
+    { key: 'line_number',     label: '#',          num: true  },
+    { key: 'item_code',       label: 'Code',       num: false },
+    { key: 'hsn_sac_code',    label: 'HSN/SAC',    num: false },
+    { key: 'description',     label: 'Description',num: false, cls: 'desc' },
+    { key: 'quantity',        label: 'Qty',        num: true  },
+    { key: 'unit',            label: 'Unit',       num: false },
+    { key: 'unit_price',      label: 'Price',      num: true  },
+    { key: 'discount_percent',label: 'Disc%',      num: true  },
+    { key: 'discount_amount', label: 'Disc Amt',   num: true  },
+    { key: 'taxable_amount',  label: 'Taxable',    num: true  },
+    { key: 'cgst_rate',       label: 'CGST%',      num: true  },
+    { key: 'cgst_amount',     label: 'CGST',       num: true  },
+    { key: 'sgst_rate',       label: 'SGST%',      num: true  },
+    { key: 'sgst_amount',     label: 'SGST',       num: true  },
+    { key: 'igst_rate',       label: 'IGST%',      num: true  },
+    { key: 'igst_amount',     label: 'IGST',       num: true  },
+    { key: 'tax_rate',        label: 'Tax%',       num: true  },
+    { key: 'tax_amount',      label: 'Tax',        num: true  },
+    { key: 'total',           label: 'Total',      num: true  },
+  ];
+
+  const visible = ALL_COLS.filter(col => items.some(item => item[col.key] != null));
+
+  const thead = visible.map(c => `<th class="${c.num ? 'num' : ''}">${esc(c.label)}</th>`).join('');
+  const tbody = items.map(item => {
+    const tds = visible.map(c => {
+      const v = item[c.key];
+      const cls = [c.num ? 'num' : '', c.cls ?? ''].filter(Boolean).join(' ');
+      const display = v == null
+        ? '<span class="nil">—</span>'
+        : c.num && typeof v === 'number' && c.key !== 'line_number' && c.key !== 'quantity'
+          ? fmt(v)
+          : esc(String(v));
+      return `<td class="${cls}">${display}</td>`;
+    }).join('');
+    return `<tr>${tds}</tr>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Line Items <span style="font-weight:400;color:var(--gray-400)">(${items.length})</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>${thead}</tr></thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderTotals(t) {
+  const c = t.currency;
+  const rows = [
+    { label: 'Subtotal',          val: t.subtotal },
+    { label: 'Discount',          val: t.total_discount },
+    { label: 'Taxable Amount',    val: t.taxable_amount },
+    { label: 'CGST',              val: t.total_cgst },
+    { label: 'SGST',              val: t.total_sgst },
+    { label: 'IGST',              val: t.total_igst },
+    { label: 'Total Tax',         val: t.total_tax },
+    { label: 'Shipping',          val: t.shipping_charges },
+    { label: 'Amount Paid',       val: t.amount_paid },
+    { label: 'Balance Due',       val: t.balance_due },
+  ].filter(r => r.val != null);
+
+  const rowsHtml = rows.map(r => `
+    <dl class="total-row">
+      <dt>${esc(r.label)}</dt>
+      <dd>${fmt(r.val, c)}</dd>
+    </dl>`).join('');
+
+  const grandHtml = t.grand_total != null ? `
+    <dl class="total-row grand">
+      <dt>Grand Total</dt>
+      <dd>${fmt(t.grand_total, c)}</dd>
+    </dl>` : '';
+
+  const wordsHtml = t.amount_in_words
+    ? `<p class="amount-words">${esc(t.amount_in_words)}</p>`
+    : '';
+
+  return `
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Totals${c ? ` <span style="font-weight:400;color:var(--gray-400)">(${esc(c)})</span>` : ''}
+      </div>
+      ${rowsHtml}
+      ${grandHtml}
+      ${wordsHtml}
+    </div>`;
+}
+
+// ── Direct desktop upload ─────────────────────────────────────────────────────
+
+const uploadZone          = document.getElementById('upload-zone');
+const desktopFileInput    = document.getElementById('desktop-file-input');
+const selectedFileInfo    = document.getElementById('selected-file-info');
+const selectedFileName    = document.getElementById('selected-file-name');
+const btnDesktopUpload    = document.getElementById('btn-desktop-upload');
+const uploadProgress      = document.getElementById('upload-progress');
+const uploadProgressFill  = document.getElementById('upload-progress-fill');
+const uploadProgressLabel = document.getElementById('upload-progress-label');
+
+let desktopSelectedFile = null;
+
+function clearUploadState() {
+  desktopSelectedFile = null;
+  desktopFileInput.value = '';
+  selectedFileInfo.style.display = 'none';
+  btnDesktopUpload.disabled = true;
+  uploadProgress.style.display = 'none';
+  uploadProgressFill.style.width = '0%';
+}
+
+desktopFileInput.addEventListener('change', () => {
+  const file = desktopFileInput.files && desktopFileInput.files[0];
+  if (!file) return;
+  desktopSelectedFile = file;
+  selectedFileName.textContent = file.name;
+  selectedFileInfo.style.display = 'flex';
+  btnDesktopUpload.disabled = false;
+  uploadProgress.style.display = 'none';
+});
+
+uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadZone.classList.add('drag-over');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer && e.dataTransfer.files[0];
+  if (!file) return;
+  desktopSelectedFile = file;
+  selectedFileName.textContent = file.name;
+  selectedFileInfo.style.display = 'flex';
+  btnDesktopUpload.disabled = false;
+  uploadProgress.style.display = 'none';
+});
+
+btnDesktopUpload.addEventListener('click', () => {
+  if (!desktopSelectedFile || !currentSessionId) return;
+
+  const form = new FormData();
+  form.append('file', desktopSelectedFile);
+
+  btnDesktopUpload.disabled = true;
+  uploadProgress.style.display = 'block';
+  uploadProgressFill.style.width = '0%';
+  uploadProgressLabel.textContent = 'Uploading…';
+  showView('processing');
+  setStatus('processing', 'Uploading…');
+
+  const xhr = new XMLHttpRequest();
+
+  xhr.upload.addEventListener('progress', (e) => {
+    if (e.lengthComputable) {
+      const pct = Math.round((e.loaded / e.total) * 100);
+      uploadProgressFill.style.width = pct + '%';
+      uploadProgressLabel.textContent = pct < 100 ? 'Uploading… ' + pct + '%' : 'Processing…';
+    }
+  });
+
+  xhr.addEventListener('load', () => {
+    uploadProgress.style.display = 'none';
+    clearUploadState();
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      // Results arrive via WebSocket — use HTTP response only as fallback
+      if (resultsView.style.display === 'none' || resultsView.style.display === '') {
+        try {
+          const body = JSON.parse(xhr.responseText);
+          if (body.data && body.data.data) {
+            renderResults(body.data.data);
+            showView('results');
+            setStatus('done', 'Done');
+            btnScanAnother.disabled = false;
+          }
+        } catch { /* WebSocket will update UI */ }
+      }
+    } else {
+      if (resultsView.style.display === 'none' || resultsView.style.display === '') {
+        let msg = 'Upload failed (' + xhr.status + ')';
+        try {
+          const body = JSON.parse(xhr.responseText);
+          if (body.error && body.error.message) msg = body.error.message;
+          else if (typeof body.error === 'string') msg = body.error;
+        } catch {}
+        setStatus('error', 'Upload failed');
+        errorMsg.textContent = msg;
+        showView('error');
+        btnScanAnother.disabled = false;
+      }
+    }
+  });
+
+  xhr.addEventListener('error', () => {
+    uploadProgress.style.display = 'none';
+    clearUploadState();
+    setStatus('error', 'Network error');
+    errorMsg.textContent = 'Network error — check your connection.';
+    showView('error');
+    btnScanAnother.disabled = false;
+  });
+
+  xhr.open('POST', '/api/v1/extract/' + encodeURIComponent(currentSessionId));
+  xhr.send(form);
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+showView('empty');
+initSession();
+</script>
+</body>
+</html>
