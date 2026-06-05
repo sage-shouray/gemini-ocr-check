@@ -119,3 +119,10 @@ export interface SessionData {
   error: string | null;
 }
 
+export type MobileEventType =
+  | 'mobile_connected'
+  | 'camera_opened'
+  | 'image_captured'
+  | 'uploading'
+  | 'upload_complete';
+
