@@ -7,10 +7,19 @@ import http from 'http';
 import { WebSocketServer } from 'ws';
 import { config } from './config/env';
 import { logger } from './utils/logger';
-import { registerClient, unregisterClient, notifyDesktop } from './services/ws.service';
+import {
+  registerClient,
+  unregisterClient,
+  notifyDesktop,
+  registerMobileClient,
+  unregisterMobileClient,
+  relayMobileEvent,
+} from './services/ws.service';
+import { getSession } from './services/session.service';
 import extractRouter from './routes/extract.route';
 import sessionRouter from './routes/session.route';
 import { errorMiddleware } from './middleware/error.middleware';
+import type { MobileEventType } from './types/invoice.types';
 
 const pkg = JSON.parse(
   fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')
@@ -23,22 +32,62 @@ const httpServer = http.createServer(app);
 // ── WebSocket server ─────────────────────────────────────────────────────────
 const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
+const VALID_MOBILE_EVENTS = new Set<string>([
+  'mobile_connected', 'camera_opened', 'image_captured', 'uploading', 'upload_complete',
+]);
+
 wss.on('connection', (ws) => {
   logger.debug('WebSocket client connected');
 
   ws.on('message', (raw) => {
     try {
-      const msg = JSON.parse(raw.toString()) as { type?: string; sessionId?: string };
+      const msg = JSON.parse(raw.toString()) as {
+        type?: string;
+        sessionId?: string;
+        eventType?: string;
+        data?: Record<string, unknown>;
+      };
+
+      // Desktop registers to receive updates for a session
       if (msg.type === 'register' && typeof msg.sessionId === 'string') {
         registerClient(msg.sessionId, ws);
         ws.send(JSON.stringify({ type: 'registered', sessionId: msg.sessionId }));
+        return;
+      }
+
+      // Mobile announces its presence for a session
+      if (msg.type === 'mobile_register' && typeof msg.sessionId === 'string') {
+        const session = getSession(msg.sessionId);
+        if (!session) {
+          ws.send(JSON.stringify({ type: 'session_invalid', sessionId: msg.sessionId }));
+          return;
+        }
+        registerMobileClient(msg.sessionId, ws);
+        ws.send(JSON.stringify({ type: 'mobile_registered', sessionId: msg.sessionId }));
+        // Immediately tell the desktop a phone has connected
+        relayMobileEvent(msg.sessionId, 'mobile_connected');
+        return;
+      }
+
+      // Mobile sends lifecycle events (camera_opened, image_captured, uploading, upload_complete)
+      if (
+        msg.type === 'mobile_event' &&
+        typeof msg.sessionId === 'string' &&
+        typeof msg.eventType === 'string' &&
+        VALID_MOBILE_EVENTS.has(msg.eventType)
+      ) {
+        relayMobileEvent(msg.sessionId, msg.eventType as MobileEventType, msg.data);
+        return;
       }
     } catch {
       // ignore unparseable frames
     }
   });
 
-  ws.on('close', () => unregisterClient(ws));
+  ws.on('close', () => {
+    unregisterClient(ws);
+    unregisterMobileClient(ws);
+  });
   ws.on('error', (err) => logger.warn('WebSocket error', { error: err.message }));
 });
 
