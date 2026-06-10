@@ -77,21 +77,6 @@
     }
     .sidebar-title { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--gray-400); align-self: flex-start; }
 
-    /* QR area */
-    .qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
-    .qr-box {
-      width: 220px; height: 220px;
-      border: 2px solid var(--gray-200);
-      border-radius: var(--radius);
-      display: flex; align-items: center; justify-content: center;
-      background: var(--gray-50);
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    .qr-box img { width: 100%; height: 100%; object-fit: contain; }
-    .qr-box.loading { border-style: dashed; }
-    .qr-placeholder { color: var(--gray-400); font-size: .85rem; text-align: center; padding: 16px; }
-
     /* Status pill */
     .status-pill {
       display: flex; align-items: center; gap: 6px;
@@ -155,6 +140,60 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
+
+    /* ── SAP Tips carousel ───────────────────────────────────────────────── */
+    .tips-outer {
+      width: 100%; max-width: 500px;
+      margin-top: 28px;
+    }
+    .tips-label {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--gray-400);
+      margin-bottom: 10px; text-align: center;
+    }
+    .tips-card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 16px;
+      padding: 20px 22px 16px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .35s ease, transform .35s ease;
+      min-height: 130px;
+    }
+    .tips-card.visible { opacity: 1; transform: translateY(0); }
+
+    .tips-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 11px; border-radius: 999px;
+      font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 11px;
+    }
+    .tips-badge.green { background: var(--green-50); color: var(--green); }
+    .tips-badge.blue  { background: var(--blue-50);  color: var(--blue);  }
+    .tips-badge.red   { background: var(--red-50);   color: var(--red);   }
+    .tips-badge.amber { background: var(--amber-50); color: var(--amber); }
+
+    @keyframes badge-pulse {
+      0%, 100% { opacity: 1; transform: scale(1);   }
+      50%       { opacity: .4; transform: scale(.65); }
+    }
+    .badge-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor;
+      animation: badge-pulse 1.6s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    .tips-heading { font-size: .88rem; font-weight: 700; color: var(--gray-900); margin-bottom: 6px; line-height: 1.3; }
+    .tips-body    { font-size: .78rem; color: var(--gray-500); line-height: 1.6; }
+
+    .tips-progress { width: 100%; height: 3px; background: var(--gray-100); border-radius: 999px; margin-top: 16px; overflow: hidden; }
+    .tips-progress-fill { height: 100%; width: 0%; border-radius: 999px; }
+    .tips-progress-fill.green { background: var(--green); }
+    .tips-progress-fill.blue  { background: var(--blue);  }
+    .tips-progress-fill.red   { background: var(--red);   }
+    .tips-progress-fill.amber { background: var(--amber); }
 
     /* ── Result cards ────────────────────────────────────────────────────── */
     #results-view { display: none; flex-direction: column; gap: 20px; }
@@ -287,127 +326,6 @@
     .upload-progress-track { width: 100%; height: 6px; background: var(--gray-100); border-radius: 999px; overflow: hidden; margin-bottom: 4px; }
     .upload-progress-fill { height: 100%; width: 0%; background: var(--green); border-radius: 999px; transition: width .2s; }
     .upload-progress-label { font-size: .72rem; color: var(--gray-500); text-align: center; }
-
-    /* ── Sidebar action row ──────────────────────────────────────────────────── */
-    .sidebar-btn-row { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-
-    .btn-scan-phone {
-      width: 100%; padding: 11px;
-      background: var(--blue-50); color: var(--blue);
-      border: 1px solid var(--blue-100); border-radius: 10px;
-      font-size: .9rem; font-weight: 600;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: background .15s, transform .1s;
-    }
-    .btn-scan-phone:hover  { background: var(--blue-100); }
-    .btn-scan-phone:active { transform: scale(.98); }
-    .btn-scan-phone svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-    /* ── QR Modal overlay ────────────────────────────────────────────────────── */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(0,0,0,.5);
-      display: none; align-items: center; justify-content: center;
-      padding: 20px;
-    }
-    .modal-overlay.open { display: flex; }
-
-    .modal-dialog {
-      background: #fff;
-      border-radius: 18px;
-      width: 100%; max-width: 440px;
-      box-shadow: 0 24px 64px rgba(0,0,0,.22);
-      overflow: hidden;
-      animation: modal-in .18s ease;
-    }
-    @keyframes modal-in {
-      from { opacity: 0; transform: scale(.96) translateY(10px); }
-      to   { opacity: 1; transform: scale(1)   translateY(0);    }
-    }
-
-    .modal-head {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--gray-200);
-    }
-    .modal-head h2 { font-size: .95rem; font-weight: 700; color: var(--gray-900); }
-    .modal-close-btn {
-      width: 30px; height: 30px; border-radius: 8px;
-      border: none; background: var(--gray-100);
-      color: var(--gray-500); font-size: 1rem; line-height: 1;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: background .15s;
-    }
-    .modal-close-btn:hover { background: var(--gray-200); color: var(--gray-900); }
-
-    .modal-body {
-      padding: 20px;
-      display: flex; gap: 20px; align-items: flex-start;
-    }
-
-    .modal-qr-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .modal-qr-box {
-      width: 160px; height: 160px;
-      border: 2px solid var(--gray-200); border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--gray-50); overflow: hidden;
-    }
-    .modal-qr-box img { width: 100%; height: 100%; object-fit: contain; }
-    .modal-qr-box.loading { border-style: dashed; }
-    .modal-session-id { font-size: .65rem; color: var(--gray-400); word-break: break-all; text-align: center; max-width: 160px; }
-
-    /* ── Status timeline ─────────────────────────────────────────────────────── */
-    .scan-timeline { flex: 1; display: flex; flex-direction: column; gap: 0; }
-
-    .scan-step {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 8px 0; position: relative;
-    }
-    .scan-step:not(:last-child)::after {
-      content: '';
-      position: absolute; left: 11px; top: 30px;
-      width: 2px; height: calc(100% - 8px);
-      background: var(--gray-200); transition: background .3s;
-    }
-    .scan-step.done::after { background: var(--green); }
-
-    .step-dot {
-      width: 24px; height: 24px; border-radius: 50%;
-      border: 2px solid var(--gray-200);
-      background: #fff; flex-shrink: 0; z-index: 1;
-      display: flex; align-items: center; justify-content: center;
-      transition: border-color .25s, background .25s;
-    }
-    .scan-step.active .step-dot { border-color: var(--blue);  background: var(--blue-50); }
-    .scan-step.done   .step-dot { border-color: var(--green); background: var(--green-50); }
-    .step-dot svg { width: 11px; height: 11px; color: var(--gray-300); }
-    .scan-step.active .step-dot svg { color: var(--blue);  }
-    .scan-step.done   .step-dot svg { color: var(--green); }
-    .step-dot .dot-spin {
-      width: 10px; height: 10px;
-      border: 2px solid var(--blue); border-top-color: transparent;
-      border-radius: 50%; animation: spin .7s linear infinite;
-    }
-
-    .step-text { flex: 1; padding-top: 3px; }
-    .step-label { font-size: .82rem; font-weight: 600; color: var(--gray-400); line-height: 1.2; transition: color .2s; }
-    .scan-step.active .step-label { color: var(--blue); }
-    .scan-step.done   .step-label { color: var(--green); }
-    .step-sub { font-size: .72rem; color: var(--gray-400); margin-top: 1px; }
-    .scan-step.active .step-sub { color: var(--gray-500); }
-
-    .modal-footer {
-      padding: 12px 20px 16px;
-      border-top: 1px solid var(--gray-100);
-      text-align: center;
-    }
-    .btn-new-session {
-      background: none; border: none; color: var(--gray-400);
-      font-size: .8rem; cursor: pointer; padding: 4px 8px;
-      border-radius: 6px; transition: color .15s, background .15s;
-    }
-    .btn-new-session:hover { color: var(--gray-700); background: var(--gray-100); }
   </style>
 </head>
 <body>
@@ -451,21 +369,10 @@
       <span id="selected-file-name"></span>
     </div>
 
-    <div class="sidebar-btn-row">
-      <button class="btn-upload" id="btn-desktop-upload" disabled>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline;margin-right:6px;vertical-align:middle"><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
-        Upload &amp; Extract
-      </button>
-      <button class="btn-scan-phone" id="btn-open-qr">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="4" height="4"/>
-          <line x1="21" y1="14" x2="21" y2="14.01"/><line x1="18" y1="21" x2="21" y2="21"/>
-          <line x1="21" y1="18" x2="21" y2="21"/>
-        </svg>
-        Scan with Phone
-      </button>
-    </div>
+    <button class="btn-upload" id="btn-desktop-upload" disabled>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline;margin-right:6px;vertical-align:middle"><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+      Upload &amp; Extract
+    </button>
 
     <div class="upload-progress" id="upload-progress" style="display:none">
       <div class="upload-progress-track">
@@ -497,7 +404,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h4"/>
       </svg>
-      <p>Scan the QR code with your phone,<br>or upload a file directly from the sidebar.</p>
+      <p>Upload an invoice file from the sidebar<br>to extract its data.</p>
     </div>
 
     <!-- Processing -->
@@ -505,6 +412,16 @@
       <div class="big-spinner"></div>
       <p style="font-size:.95rem;color:var(--gray-500)">Extracting invoice data…</p>
       <p style="font-size:.8rem;color:var(--gray-400)">This usually takes 5–15 seconds</p>
+
+      <div class="tips-outer">
+        <p class="tips-label">While you wait — SAP Quick Tips</p>
+        <div class="tips-card" id="tips-card">
+          <div class="tips-badge" id="tips-badge"><span class="badge-dot"></span><span id="tips-type"></span></div>
+          <div class="tips-heading" id="tips-heading"></div>
+          <div class="tips-body" id="tips-body"></div>
+          <div class="tips-progress"><div class="tips-progress-fill" id="tips-progress-fill"></div></div>
+        </div>
+      </div>
     </div>
 
     <!-- Error view -->
@@ -520,97 +437,6 @@
 
   </main>
 </div>
-
-<!-- ── QR Modal ───────────────────────────────────────────────────────────────── -->
-<div class="modal-overlay" id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-  <div class="modal-dialog">
-
-    <div class="modal-head">
-      <h2 id="modal-title">Scan with Phone</h2>
-      <button class="modal-close-btn" id="btn-modal-close" aria-label="Close QR modal">&times;</button>
-    </div>
-
-    <div class="modal-body">
-      <!-- QR code column -->
-      <div class="modal-qr-col">
-        <div class="modal-qr-box loading" id="modal-qr-box">
-          <p class="qr-placeholder">Loading…</p>
-        </div>
-        <code class="modal-session-id" id="modal-session-id">—</code>
-      </div>
-
-      <!-- Status timeline column -->
-      <div class="scan-timeline" id="scan-timeline" role="list" aria-label="Scanning progress">
-
-        <div class="scan-step active" id="step-scan" role="listitem">
-          <div class="step-dot">
-            <div class="dot-spin"></div>
-          </div>
-          <div class="step-text">
-            <div class="step-label">Scan the QR code</div>
-            <div class="step-sub">Use your phone camera</div>
-          </div>
-        </div>
-
-        <div class="scan-step" id="step-connected" role="listitem">
-          <div class="step-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.56 3.35 2 2 0 0 1 3.55 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.19 5.19l.87-.87a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 15.12z"/></svg>
-          </div>
-          <div class="step-text">
-            <div class="step-label">Phone connected</div>
-            <div class="step-sub">Waiting for device…</div>
-          </div>
-        </div>
-
-        <div class="scan-step" id="step-capture" role="listitem">
-          <div class="step-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          </div>
-          <div class="step-text">
-            <div class="step-label">Capturing invoice</div>
-            <div class="step-sub">Camera not yet open</div>
-          </div>
-        </div>
-
-        <div class="scan-step" id="step-upload" role="listitem">
-          <div class="step-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-          </div>
-          <div class="step-text">
-            <div class="step-label">Uploading image</div>
-            <div class="step-sub">Waiting for capture…</div>
-          </div>
-        </div>
-
-        <div class="scan-step" id="step-process" role="listitem">
-          <div class="step-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M20 12h-2M17.66 17.66l-1.41-1.41M12 20v-2M6.34 17.66l1.41-1.41M4 12h2M6.34 6.34l1.41 1.41"/></svg>
-          </div>
-          <div class="step-text">
-            <div class="step-label">Processing invoice</div>
-            <div class="step-sub">Gemini AI extraction</div>
-          </div>
-        </div>
-
-        <div class="scan-step" id="step-done" role="listitem">
-          <div class="step-dot">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div class="step-text">
-            <div class="step-label">Extraction complete</div>
-            <div class="step-sub">Results will appear here</div>
-          </div>
-        </div>
-
-      </div><!-- /.scan-timeline -->
-    </div><!-- /.modal-body -->
-
-    <div class="modal-footer">
-      <button class="btn-new-session" id="btn-modal-new-session">Generate new QR code</button>
-    </div>
-
-  </div><!-- /.modal-dialog -->
-</div><!-- /.modal-overlay -->
 
 <script>
 // ── Utilities ────────────────────────────────────────────────────────────────
@@ -643,35 +469,17 @@ function formatAddress(a) {
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
-const statusPill       = document.getElementById('status-pill');
-const btnScanAnother   = document.getElementById('btn-scan-another');
-const sessionDisplay   = document.getElementById('session-id-display');
-const wsDot            = document.getElementById('ws-dot');
-const wsLabel          = document.getElementById('ws-label');
+const statusPill     = document.getElementById('status-pill');
+const btnScanAnother = document.getElementById('btn-scan-another');
+const sessionDisplay = document.getElementById('session-id-display');
+const wsDot          = document.getElementById('ws-dot');
+const wsLabel        = document.getElementById('ws-label');
 
-const emptyView        = document.getElementById('empty-view');
-const processingView   = document.getElementById('processing-view');
-const errorView        = document.getElementById('error-view');
-const errorMsg         = document.getElementById('error-msg');
-const resultsView      = document.getElementById('results-view');
-
-// Modal refs
-const qrModal          = document.getElementById('qr-modal');
-const modalQrBox       = document.getElementById('modal-qr-box');
-const modalSessionId   = document.getElementById('modal-session-id');
-const btnOpenQr        = document.getElementById('btn-open-qr');
-const btnModalClose    = document.getElementById('btn-modal-close');
-const btnModalNewSession = document.getElementById('btn-modal-new-session');
-
-// Timeline step refs
-const steps = {
-  scan:      document.getElementById('step-scan'),
-  connected: document.getElementById('step-connected'),
-  capture:   document.getElementById('step-capture'),
-  upload:    document.getElementById('step-upload'),
-  process:   document.getElementById('step-process'),
-  done:      document.getElementById('step-done'),
-};
+const emptyView      = document.getElementById('empty-view');
+const processingView = document.getElementById('processing-view');
+const errorView      = document.getElementById('error-view');
+const errorMsg       = document.getElementById('error-msg');
+const resultsView    = document.getElementById('results-view');
 
 // ── State machine ─────────────────────────────────────────────────────────────
 
@@ -680,6 +488,8 @@ function showView(name) {
   processingView.style.display = name === 'processing' ? 'flex' : 'none';
   errorView.style.display      = name === 'error'      ? 'flex' : 'none';
   resultsView.style.display    = name === 'results'    ? 'flex' : 'none';
+  if (name === 'processing') startTipsCarousel();
+  else stopTipsCarousel();
 }
 
 function setStatus(state, text) {
@@ -731,42 +541,8 @@ function connectWs(sessionId) {
 function handleWsMessage(msg) {
   if (msg.type === 'registered') return;
 
-  // ── Mobile lifecycle events ───────────────────────────────────────────────
-  if (msg.type === 'mobile_connected') {
-    advanceStep('connected', 'Phone connected', 'Camera launching…');
-    advanceStep('capture', 'Capturing invoice', 'Camera open on device');
-    return;
-  }
-
-  if (msg.type === 'camera_opened') {
-    markStepDone('connected', 'Phone connected');
-    advanceStep('capture', 'Capturing invoice', 'Camera open — point at invoice');
-    return;
-  }
-
-  if (msg.type === 'image_captured') {
-    markStepDone('capture', 'Invoice captured');
-    advanceStep('upload', 'Uploading image', 'Sending to server…');
-    return;
-  }
-
-  if (msg.type === 'uploading') {
-    markStepDone('capture', 'Invoice captured');
-    advanceStep('upload', 'Uploading image', 'Transfer in progress…');
-    return;
-  }
-
-  if (msg.type === 'upload_complete') {
-    markStepDone('upload', 'Image received');
-    advanceStep('process', 'Processing invoice', 'Extracting with Gemini AI…');
-    return;
-  }
-
-  // ── Extraction lifecycle ──────────────────────────────────────────────────
   if (msg.status === 'processing') {
     setStatus('processing', 'Extracting…');
-    markStepDone('upload', 'Image received');
-    advanceStep('process', 'Processing invoice', 'Extracting with Gemini AI…');
     showView('processing');
     return;
   }
@@ -774,10 +550,6 @@ function handleWsMessage(msg) {
   if (msg.status === 'done' && msg.data) {
     setStatus('done', 'Done');
     btnScanAnother.disabled = false;
-    markStepDone('process', 'Extraction complete');
-    markStepDone('done', 'Results ready');
-    // Auto-close modal and show results after brief delay
-    setTimeout(() => closeQrModal(), 600);
     renderResults(msg.data);
     showView('results');
     return;
@@ -787,131 +559,15 @@ function handleWsMessage(msg) {
     setStatus('error', 'Error');
     errorMsg.textContent = msg.error ?? 'Extraction failed.';
     btnScanAnother.disabled = false;
-    // Show error step in timeline
-    const activeStep = Object.values(steps).find(s => s.classList.contains('active'));
-    if (activeStep) {
-      activeStep.classList.remove('active');
-      activeStep.classList.add('error');
-      activeStep.querySelector('.step-label').style.color = 'var(--red)';
-      activeStep.querySelector('.step-dot').style.borderColor = 'var(--red)';
-      activeStep.querySelector('.step-dot').style.background = 'var(--red-50)';
-    }
     showView('error');
   }
 }
 
-// ── Timeline helpers ──────────────────────────────────────────────────────────
-
-function advanceStep(key, label, sub) {
-  const el = steps[key];
-  if (!el) return;
-  // Clear any existing active state from all steps
-  // (only one step should be active at a time)
-  el.classList.remove('done');
-  el.classList.add('active');
-  el.querySelector('.step-label').textContent = label;
-  if (sub) el.querySelector('.step-sub').textContent = sub;
-  // Replace dot contents with spinner
-  const dot = el.querySelector('.step-dot');
-  dot.innerHTML = '<div class="dot-spin"></div>';
-}
-
-function markStepDone(key, label) {
-  const el = steps[key];
-  if (!el) return;
-  el.classList.remove('active');
-  el.classList.add('done');
-  if (label) el.querySelector('.step-label').textContent = label;
-  // Replace spinner with checkmark
-  const dot = el.querySelector('.step-dot');
-  dot.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
-}
-
-function resetTimeline() {
-  // step-scan: start active
-  steps.scan.className = 'scan-step active';
-  steps.scan.querySelector('.step-label').textContent = 'Scan the QR code';
-  steps.scan.querySelector('.step-sub').textContent = 'Use your phone camera';
-  steps.scan.querySelector('.step-dot').innerHTML = '<div class="dot-spin"></div>';
-
-  const rest = ['connected', 'capture', 'upload', 'process', 'done'];
-  const defaultIcons = {
-    connected: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.56 3.35 2 2 0 0 1 3.55 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.19 5.19l.87-.87a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 15.12z"/></svg>`,
-    capture:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
-    upload:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>`,
-    process:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M20 12h-2M17.66 17.66l-1.41-1.41M12 20v-2M6.34 17.66l1.41-1.41M4 12h2M6.34 6.34l1.41 1.41"/></svg>`,
-    done:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-  };
-  const defaultSubs = {
-    connected: 'Waiting for device…',
-    capture:   'Camera not yet open',
-    upload:    'Waiting for capture…',
-    process:   'Gemini AI extraction',
-    done:      'Results will appear here',
-  };
-  for (const key of rest) {
-    const el = steps[key];
-    el.className = 'scan-step';
-    el.style = '';
-    el.querySelector('.step-label').style = '';
-    el.querySelector('.step-dot').style = '';
-    el.querySelector('.step-dot').innerHTML = defaultIcons[key];
-    el.querySelector('.step-sub').textContent = defaultSubs[key];
-  }
-}
-
-// ── QR Modal ──────────────────────────────────────────────────────────────────
-
-let _prevFocus = null;
-
-function openQrModal() {
-  if (!currentQrDataUrl) return;
-  modalQrBox.className = 'modal-qr-box';
-  modalQrBox.innerHTML = `<img src="${esc(currentQrDataUrl)}" alt="Scan this QR code with your phone" />`;
-  modalSessionId.textContent = currentSessionId ?? '—';
-  resetTimeline();
-  qrModal.classList.add('open');
-  _prevFocus = document.activeElement;
-  btnModalClose.focus();
-  document.addEventListener('keydown', handleModalKey);
-}
-
-function closeQrModal() {
-  qrModal.classList.remove('open');
-  document.removeEventListener('keydown', handleModalKey);
-  if (_prevFocus) { _prevFocus.focus(); _prevFocus = null; }
-}
-
-function handleModalKey(e) {
-  if (e.key === 'Escape') { closeQrModal(); return; }
-  // Focus trap
-  if (e.key === 'Tab') {
-    const focusable = [...qrModal.querySelectorAll('button, [tabindex]:not([tabindex="-1"])')];
-    const first = focusable[0];
-    const last  = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-  }
-}
-
-btnOpenQr.addEventListener('click', openQrModal);
-btnModalClose.addEventListener('click', closeQrModal);
-qrModal.addEventListener('click', (e) => { if (e.target === qrModal) closeQrModal(); });
-
-btnModalNewSession.addEventListener('click', () => {
-  closeQrModal();
-  initSession().then(() => setTimeout(openQrModal, 200));
-});
-
 // ── Session init ──────────────────────────────────────────────────────────────
 
-let currentQrDataUrl = null;
-
 async function initSession() {
-  currentQrDataUrl = null;
   setStatus('waiting', 'Initialising…');
   btnScanAnother.disabled = true;
-  btnOpenQr.disabled = true;
   showView('empty');
   resultsView.innerHTML = '';
   clearUploadState();
@@ -920,19 +576,14 @@ async function initSession() {
     const resp = await fetch('/api/v1/session', { method: 'POST' });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const json = await resp.json();
-    const { sessionId, qrCodeDataUrl } = json.data;
+    const { sessionId } = json.data;
 
     currentSessionId = sessionId;
-    currentQrDataUrl = qrCodeDataUrl;
     sessionDisplay.textContent = sessionId;
-
     setStatus('waiting', 'Ready');
-    btnOpenQr.disabled = false;
-
     connectWs(sessionId);
-  } catch (err) {
+  } catch {
     setStatus('error', 'Session failed');
-    btnOpenQr.disabled = true;
   }
 }
 
@@ -1096,7 +747,6 @@ function renderPartyCard(title, party, showBank) {
 }
 
 function renderLineItems(items, currency) {
-  // Only show columns that have at least one non-null value
   const ALL_COLS = [
     { key: 'line_number',     label: '#',          num: true  },
     { key: 'item_code',       label: 'Code',       num: false },
@@ -1311,6 +961,109 @@ btnDesktopUpload.addEventListener('click', () => {
   xhr.open('POST', '/api/v1/extract/' + encodeURIComponent(currentSessionId));
   xhr.send(form);
 });
+
+// ── SAP Tips carousel ────────────────────────────────────────────────────────
+
+const SAP_TIPS = [
+  { type: 'Best Practice', color: 'green',
+    heading: 'Always Perform 3-Way Match',
+    body: 'Before posting any vendor invoice, verify it aligns with the Purchase Order and Goods Receipt. This catches price or quantity discrepancies before they become payment errors.' },
+  { type: 'Fact', color: 'blue',
+    heading: 'Parked Documents Don\'t Hit the GL',
+    body: 'A parked document in SAP saves your entry without updating any General Ledger balances. Only a fully posted document affects your financial statements.' },
+  { type: 'Myth', color: 'red',
+    heading: 'Myth: You Can Delete Posted Documents',
+    body: 'Posted FI documents cannot be deleted in SAP — they can only be reversed. This is intentional; it creates a full audit trail required for compliance and SOX.' },
+  { type: 'Best Practice', color: 'green',
+    heading: 'Configure Tolerance Groups',
+    body: 'Set up tolerance groups in vendor master data so SAP automatically flags invoices that exceed acceptable price or quantity variances. Reduces manual review effort.' },
+  { type: 'Tip', color: 'amber',
+    heading: 'Always Check the Baseline Date',
+    body: 'The baseline date drives your payment terms countdown. An incorrect baseline date can trigger early or late payments — always verify it on every posted invoice.' },
+  { type: 'Fact', color: 'blue',
+    heading: 'Every FI Document Must Balance',
+    body: 'SAP enforces that every Financial document has equal debit and credit totals at posting time. An unbalanced entry is always rejected — no exceptions.' },
+  { type: 'Best Practice', color: 'green',
+    heading: 'Enable Duplicate Invoice Check',
+    body: 'Activate duplicate invoice detection in company code settings. SAP will warn when the same vendor, amount, currency, date, and reference number are posted more than once.' },
+  { type: 'Myth', color: 'red',
+    heading: 'Myth: Archiving Deletes Your Data',
+    body: 'SAP archiving moves data to long-term archive storage — it does not delete it. Archived documents can still be retrieved via the Archive Information System when needed.' },
+  { type: 'Tip', color: 'amber',
+    heading: 'Use Credit Memo, Not Reversal',
+    body: 'For a vendor overcharge after payment, post a credit memo rather than reversing the original invoice. Reversals are only appropriate for correcting posting errors.' },
+  { type: 'Fact', color: 'blue',
+    heading: 'SAP Touches 77% of Global Transactions',
+    body: 'SAP systems process over 77% of the world\'s transaction revenue and are used by 98% of the 100 largest companies — making data accuracy in SAP critically important.' },
+  { type: 'Best Practice', color: 'green',
+    heading: 'Use Document Parking for Incomplete Entries',
+    body: 'When you don\'t have all invoice details yet, park the document instead of leaving it in a draft. Parked documents are tracked, reportable, and can be completed later without risk.' },
+  { type: 'Myth', color: 'red',
+    heading: 'Myth: Payment Terms Can\'t Be Changed',
+    body: 'Payment terms on an open (uncleared) vendor item can be changed directly in the document. However, once an invoice is cleared by payment, no further changes are possible.' },
+];
+
+const TIPS_INTERVAL = 6000;
+let tipsIndex = 0;
+let tipsTimer  = null;
+
+const tipsCard         = document.getElementById('tips-card');
+const tipsBadge        = document.getElementById('tips-badge');
+const tipsType         = document.getElementById('tips-type');
+const tipsHeading      = document.getElementById('tips-heading');
+const tipsBody         = document.getElementById('tips-body');
+const tipsProgressFill = document.getElementById('tips-progress-fill');
+
+function applyTip(tip) {
+  tipsBadge.className = `tips-badge ${tip.color}`;
+  tipsType.textContent = tip.type;
+  tipsHeading.textContent = tip.heading;
+  tipsBody.textContent = tip.body;
+  tipsProgressFill.className = `tips-progress-fill ${tip.color}`;
+}
+
+function advanceTip(animate) {
+  if (animate) {
+    tipsCard.classList.remove('visible');
+    setTimeout(() => {
+      applyTip(SAP_TIPS[tipsIndex]);
+      tipsCard.classList.add('visible');
+      startProgressBar();
+    }, 280);
+  } else {
+    applyTip(SAP_TIPS[tipsIndex]);
+    tipsCard.classList.add('visible');
+    startProgressBar();
+  }
+}
+
+function startProgressBar() {
+  tipsProgressFill.style.transition = 'none';
+  tipsProgressFill.style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    tipsProgressFill.style.transition = `width ${TIPS_INTERVAL}ms linear`;
+    tipsProgressFill.style.width = '100%';
+  }));
+}
+
+function startTipsCarousel() {
+  if (tipsTimer) return;
+  tipsIndex = Math.floor(Math.random() * SAP_TIPS.length);
+  advanceTip(false);
+  tipsTimer = setInterval(() => {
+    tipsIndex = (tipsIndex + 1) % SAP_TIPS.length;
+    advanceTip(true);
+  }, TIPS_INTERVAL);
+}
+
+function stopTipsCarousel() {
+  if (!tipsTimer) return;
+  clearInterval(tipsTimer);
+  tipsTimer = null;
+  tipsCard.classList.remove('visible');
+  tipsProgressFill.style.transition = 'none';
+  tipsProgressFill.style.width = '0%';
+}
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 showView('empty');
